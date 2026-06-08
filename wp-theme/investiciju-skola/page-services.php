@@ -92,6 +92,23 @@ get_header();
       <article class="card">
         <div class="card__top">
           <div class="icon icon--spark" aria-hidden="true"></div>
+          <h3 class="h3">Ceļvedis par AI izmantošanu</h3>
+        </div>
+        <p class="service-pill">Galvenais produkts</p>
+        <p>Īsa pamācība, kā patstāvīgi izmantot mākslīgo intelektu savā ikdienā.</p>
+        <p><strong>20 EUR</strong></p>
+        <ul class="list">
+          <li>Soli pa solim ceļvedis</li>
+          <li>Praktiski piemēri un rīku ieteikumi</li>
+          <li>Piemērots gan iesācējiem, gan aktīviem lietotājiem</li>
+        </ul>
+        <div class="panel__actions">
+          <a class="button" href="#" data-stripe-link="guide">Iegādāties</a>
+        </div>
+      </article>
+      <article class="card">
+        <div class="card__top">
+          <div class="icon icon--spark" aria-hidden="true"></div>
           <h3 class="h3">AI Apmācības</h3>
         </div>
         <p><strong>150 EUR</strong> · Ievadlekcija</p>

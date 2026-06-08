@@ -2,6 +2,7 @@
   const config = {
     discordInviteUrl: "https://discord.com/invite/REPLACE_ME",
     contactEmail: "info@intelektaskola.lv",
+    guideSignupEndpoint: "",
     contactSubjectPrefix: "Intelekta Skola — ",
     social: {
       facebook: "https://www.facebook.com/intelektaskola",
@@ -9,6 +10,7 @@
       linkedin: "https://www.linkedin.com/company/intelektaskola",
     },
     stripeLinks: {
+      guide: "https://buy.stripe.com/3cI14m6Y3ahgbiS0vP2ZO01",
       training: "https://buy.stripe.com/9B6bJ0gyD610dr00vP2ZO00",
       automation: "https://buy.stripe.com/9B6bJ0gyD610dr00vP2ZO00",
       integration: "https://buy.stripe.com/9B6bJ0gyD610dr00vP2ZO00",
@@ -1355,6 +1357,138 @@
     document.body.appendChild(bar);
     applyLang(lang);
   };
+
+const createGuidePopup = () => {
+    const popupKey = "guidePopupSeen";
+    const delayMs = Number(config.guidePopupDelayMs || 7000);
+    if (sessionStorage.getItem(popupKey)) return null;
+
+    const overlay = document.createElement("div");
+    overlay.className = "guide-popup-overlay";
+    overlay.hidden = true;
+    overlay.innerHTML = `
+      <div class="guide-popup" role="dialog" aria-modal="true" aria-labelledby="guide-popup-title">
+        <button type="button" class="guide-popup__close" aria-label="Aizvērt">×</button>
+        <div class="guide-popup__header">
+          <div class="guide-popup__eyebrow">Bezmaksas ceļvedis MI</div>
+          <h2 id="guide-popup-title">Uzzini, kā AI var palīdzēt ikdienā</h2>
+          <p>Ievadi savu e-pasta adresi un saņem bezmaksas ceļvedi uz e-pastu.</p>
+        </div>
+        <form class="guide-popup__form" id="guidePopupForm">
+          <label class="guide-popup__field">
+            <span class="guide-popup__label">E-pasts</span>
+            <input class="guide-popup__input" type="email" name="email" placeholder="tavs@epasts.lv" required />
+          </label>
+          <div class="guide-popup__actions">
+            <button class="button" type="submit">Saņemt ceļvedi</button>
+            <button class="button button--ghost" type="button" data-guide-close>Atcelt</button>
+          </div>
+          <p class="guide-popup__note">Ievadot e-pastu, mēs varam nosūtīt ceļvedi automātiski vai pieprasīt to manuāli.</p>
+        </form>
+      </div>
+    `;
+
+    const redirectUrl = "/";
+    const closePopup = (redirect = true) => {
+      sessionStorage.setItem(popupKey, "true");
+      overlay.hidden = true;
+      overlay.setAttribute("aria-hidden", "true");
+      overlay.classList.remove("guide-popup-is-open");
+      document.body.classList.remove("guide-popup-open");
+      if (redirect) window.location.replace(redirectUrl);
+    };
+
+    overlay.addEventListener("click", (event) => {
+      if (event.target === overlay) closePopup();
+    });
+
+    const popupCard = overlay.querySelector(".guide-popup");
+    popupCard?.addEventListener("click", (event) => {
+      event.stopPropagation();
+    });
+
+    overlay.querySelector(".guide-popup__close")?.addEventListener("click", (event) => {
+      event.preventDefault();
+      closePopup();
+    });
+    overlay.querySelectorAll("[data-guide-close]").forEach((btn) => {
+      btn.addEventListener("click", (event) => {
+        event.preventDefault();
+        closePopup();
+      });
+    });
+
+    const form = overlay.querySelector("#guidePopupForm");
+    if (form instanceof HTMLFormElement) {
+      const statusEl = document.createElement("p");
+      statusEl.className = "guide-popup__status";
+
+      const showStatus = (message) => {
+        statusEl.textContent = message;
+        if (!form.contains(statusEl)) form.appendChild(statusEl);
+      };
+
+      const isValidEmail = (value) => /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value);
+
+      form.addEventListener("submit", async (event) => {
+        event.preventDefault();
+        const emailInput = form.querySelector('input[name="email"]');
+        const email = emailInput ? String(emailInput.value || "").trim() : "";
+        if (!isValidEmail(email)) {
+          showStatus("Lūdzu ievadi derīgu e-pastu.");
+          emailInput?.focus();
+          return;
+        }
+
+        sessionStorage.setItem(popupKey, "true");
+        const endpoint = String(config.guideSignupEndpoint || "").trim();
+
+        if (endpoint) {
+          try {
+            const result = await fetch(endpoint, {
+              method: "POST",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify({ email }),
+            });
+            if (!result.ok) throw new Error("Network response not OK");
+            showStatus("Paldies! Ceļvedis drīz tiks nosūtīts uz Tavu e-pastu.");
+            form.querySelector("button[type=submit]")?.setAttribute("disabled", "true");
+            window.setTimeout(() => closePopup(true), 900);
+          } catch (error) {
+            console.error(error);
+            showStatus("Kļūda. Lūdzu sazinieties ar info@intelektaskola.lv.");
+          }
+          return;
+        }
+
+        const mailto = `mailto:${encodeURIComponent(config.contactEmail)}?subject=${encodeURIComponent(
+          "Bezmaksas ceļvedis MI",
+        )}&body=${encodeURIComponent(`Lūdzu, nosūtiet man bezmaksas ceļvedi.\nE-pasts: ${email}`)}`;
+        const mailWindow = window.open(mailto, "_blank");
+        if (!mailWindow) window.location.href = mailto;
+        window.setTimeout(() => closePopup(true), 100);
+      });
+    }
+
+    document.body.appendChild(overlay);
+    window.addEventListener("keydown", (event) => {
+      if (event.key === "Escape") closePopup();
+    });
+
+    window.setTimeout(() => {
+      if (overlay.hidden) {
+        overlay.hidden = false;
+        overlay.removeAttribute("aria-hidden");
+        overlay.classList.add("guide-popup-is-open");
+        document.body.classList.add("guide-popup-open");
+        sessionStorage.setItem(popupKey, "true");
+      }
+    }, delayMs);
+
+    return overlay;
+  };
+
+  createGuidePopup();
 
   initCookieConsent();
 })();
